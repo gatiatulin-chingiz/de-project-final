@@ -1,3 +1,4 @@
+import sqlparse
 import contextlib
 import vertica_python
 from pathlib import Path
@@ -25,19 +26,18 @@ def run_sql_file_query(
         sql_params: dict = None,
     ):
 
-    with open(sql_file_path, 'r') as f:
-        f_content = f.read()
+    f_content = sql_file_path.read_text()
 
     if sql_params:
         f_content = f_content.format(**sql_params)
 
-    sql_query_list = [query.rstrip() for query in f_content.split(';')]
+    sql_query_list = [query.strip() for query in sqlparse.split(f_content) if query.strip()]
 
     if not cur:
         vertica_conn = vertica_python.connect(**vertica_conn_info)
         with contextlib.closing(vertica_conn.cursor()) as cur:
             for sql_query in sql_query_list:
-                cur.execute(sql_query + ';')
+                cur.execute(sql_query)
     else:
         for sql_query in sql_query_list:
-            cur.execute(sql_query + ';')
+            cur.execute(sql_query)
